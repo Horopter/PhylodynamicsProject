@@ -2,6 +2,8 @@
 Common utilities and imports for analysis modules.
 
 Provides shared imports and utilities to reduce redundancy across files.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import warnings

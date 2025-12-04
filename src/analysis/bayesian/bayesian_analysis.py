@@ -2,49 +2,42 @@
 Bayesian Analysis: Runs Bayesian MCMC estimation on phylogenetic trees.
 
 Uses the unified batch processor with the Bayesian estimator class.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 # Setup environment first (adds paths)
+import sys
 from utils.common import setup_analysis_environment
 setup_analysis_environment(__file__)
 
 # Now we can import from config and other modules
 from config import BAYESIAN_OUTPUT_DIR, DEFAULT_SAMPLING_PROBA
+
 from utils.batch_processor import process_trees_batch
 
 # Bayesian imports
 try:
-    from bayesian.bayesian_birth_death import BayesianBirthDeath, HAS_PYMC
-    if not HAS_PYMC:
-        print(
-            "ERROR: PyMC is not installed. "
-            "Install with: pip install -r requirements-bayesian.txt"
-        )
-        sys.exit(1)
+    from bayesian.bayesian_birth_death import BayesianBirthDeath
     HAS_BAYESIAN = True
-except ImportError as e:
+except ImportError:
     HAS_BAYESIAN = False
-    print(
-        f"ERROR: Bayesian methods not available. "
-        f"Import error: {str(e)}\n"
-        f"Install PyMC: pip install -r requirements-bayesian.txt"
-    )
-    sys.exit(1)
-except Exception as e:
-    HAS_BAYESIAN = False
-    print(
-        f"ERROR: Failed to import Bayesian module: {str(e)}\n"
-        f"Install PyMC: pip install -r requirements-bayesian.txt"
-    )
+    print("Warning: Bayesian dependencies not installed.")
+    print("Install with: pip install -r requirements-bayesian.txt")
     sys.exit(1)
 
 
-def bayesian_estimator(tree_file: str, sampling_prob: float, draws=1000, tune=500, chains=4):
+def bayesian_estimator(tree_file: str, sampling_prob: float, draws=1000,
+                       tune=500, chains=4):
     """Estimate parameters using Bayesian MCMC."""
     try:
-        estimator = BayesianBirthDeath(tree_file, sampling_prob=sampling_prob)
-        result = estimator.estimate_bd(draws=draws, tune=tune, chains=chains)
-        
+        estimator = BayesianBirthDeath(
+            tree_file, sampling_prob=sampling_prob
+        )
+        result = estimator.estimate_bd(
+            draws=draws, tune=tune, chains=chains
+        )
+
         if result.get('success', False):
             return {
                 'success': True,
@@ -79,7 +72,10 @@ def bayesian_estimator(tree_file: str, sampling_prob: float, draws=1000, tune=50
                 'lambda_mean': None,
                 'mu_mean': None,
                 'R0_mean': None,
-                'error': error_msg[:200] if error_msg else 'Bayesian estimation failed'
+                'error': (
+                    error_msg[:200] if error_msg else
+                    'Bayesian estimation failed'
+                )
             }
     except Exception as e:
         error_msg = str(e)
@@ -96,38 +92,29 @@ def bayesian_estimator(tree_file: str, sampling_prob: float, draws=1000, tune=50
 
 if __name__ == "__main__":
     import argparse
-    
+    import multiprocessing
+
     parser = argparse.ArgumentParser(description="Run Bayesian analysis")
     parser.add_argument(
         "--n-jobs",
         type=int,
         default=-1,  # Default to parallel (use all CPUs)
-        help="Number of parallel jobs (-1 = all CPUs, 1 = sequential, N > 1 = N workers)"
+        help=(
+            "Number of parallel jobs (-1 = all CPUs, 1 = sequential, "
+            "N > 1 = N workers)"
+        )
     )
     parser.add_argument(
         "--sequential",
         action="store_true",
-        help="Run sequentially instead of in parallel (overrides --n-jobs)"
+        help="Force sequential processing (overrides --n-jobs)"
     )
     args = parser.parse_args()
-    
-    # Determine n_jobs
-    if args.sequential:
-        n_jobs = 1
-        print("Note: Running in sequential mode (--sequential flag)")
-    elif args.n_jobs == -1:
-        import multiprocessing
-        n_jobs = max(1, multiprocessing.cpu_count() - 1)  # Leave one CPU free
-        print(f"Note: Running in parallel mode with {n_jobs} workers")
-    else:
-        n_jobs = args.n_jobs
-        if n_jobs > 1:
-            print(f"Note: Running in parallel mode with {n_jobs} workers")
-        else:
-            print("Note: Running in sequential mode")
-    
+
+    n_jobs_to_use = 1 if args.sequential else args.n_jobs
+
     print("Note: Bayesian analysis is slower than MLE/PhyloDeep")
-    
+
     process_trees_batch(
         estimator_func=bayesian_estimator,
         output_dir=BAYESIAN_OUTPUT_DIR,
@@ -137,5 +124,5 @@ if __name__ == "__main__":
         tune=500,
         chains=4,  # Use 4 chains for robust diagnostics
         progress_interval=1,  # Show progress for each tree (slower method)
-        n_jobs=n_jobs,
+        n_jobs=n_jobs_to_use,
     )

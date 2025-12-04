@@ -1,8 +1,11 @@
 """
-Unified batch processing module for running parameter estimation on multiple trees.
+Unified batch processing module for running parameter estimation on multiple
+    trees.
 
 This module provides shared functionality for batch processing trees across
 all estimation methods (MLE, PhyloDeep, Bayesian).
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import os
@@ -35,7 +38,8 @@ def load_tree_metadata(target_tip_sizes: Optional[List[int]] = None):
     Parameters:
     -----------
     target_tip_sizes : list of int, optional
-        Specific tip sizes to analyze. If None, analyzes all trees >= MIN_TIP_SIZE.
+        Specific tip sizes to analyze. If None, analyzes all trees >=
+             MIN_TIP_SIZE.
     
     Returns:
     --------
@@ -55,7 +59,9 @@ def load_tree_metadata(target_tip_sizes: Optional[List[int]] = None):
         for size in target_tip_sizes:
             count = len(df_params[df_params['tips'] == size])
             available_sizes[size] = count
-        target_tip_sizes = [s for s in target_tip_sizes if available_sizes.get(s, 0) > 0]
+        target_tip_sizes = [
+            s for s in target_tip_sizes if available_sizes.get(s, 0) > 0
+        ]
     
     return df_params, target_tip_sizes
 
@@ -96,7 +102,8 @@ def _process_single_tree(
                 sys.path.insert(0, path)
         
         # Set up environment variables
-        os.environ['PYTHONPATH'] = ':'.join(paths_to_add + [os.environ.get('PYTHONPATH', '')])
+        os.environ['PYTHONPATH'] = ':'.join(paths_to_add +
+            [os.environ.get('PYTHONPATH', '')])
         
         # Import the estimator function
         module = importlib.import_module(estimator_module)
@@ -129,9 +136,12 @@ def _process_single_tree(
             error_msg = error_msg[:200]
         result = {
             'tree_idx': tree_info[0] if tree_info else None,
-            'tip_size': tree_info[1] if tree_info and len(tree_info) > 1 else None,
-            'true_lambda': tree_info[3] if tree_info and len(tree_info) > 3 else None,
-            'true_mu': tree_info[4] if tree_info and len(tree_info) > 4 else None,
+            'tip_size': tree_info[1] if tree_info and len(tree_info) > 1 else
+                None,
+            'true_lambda': tree_info[3] if tree_info and len(tree_info) > 3
+                else None,
+            'true_mu': tree_info[4] if tree_info and len(tree_info) > 4 else
+                None,
             'error': error_msg
         }
     
@@ -184,7 +194,10 @@ def process_trees_batch(
     print("-" * 80)
     df_params, target_tip_sizes = load_tree_metadata(target_tip_sizes)
     print(f"Loaded {len(df_params)} tree records")
-    print(f"Tip size range: {df_params['tips'].min()} - {df_params['tips'].max()}")
+    print(
+        f"Tip size range: {df_params['tips'].min()} - "
+        f"{df_params['tips'].max()}"
+    )
     
     if not target_tip_sizes:
         print("\nNo trees found for analysis!")
@@ -311,10 +324,12 @@ def process_trees_batch(
                     
                     try:
                         # Add timeout to prevent hanging
-                        result = future.result(timeout=300)  # 5 minute timeout per tree
+                        # 5 minute timeout per tree
+                        result = future.result(timeout=300)
                         if result.get('error'):
                             failed += 1
-                        elif result.get('lambda') is not None or result.get('lambda_mean') is not None:
+                        elif (result.get('lambda') is not None or
+                              result.get('lambda_mean') is not None):
                             successful += 1
                         else:
                             failed += 1
@@ -322,7 +337,10 @@ def process_trees_batch(
                     except TimeoutError:
                         failed += 1
                         tree_idx = futures[future]
-                        print(f"    ⚠ Tree {tree_idx} timed out after 5 minutes")
+                        print(
+                            f"    [WARN] Tree {tree_idx} timed out after 5 "
+                            "minutes"
+                        )
                         results_for_size.append({
                             'tree_idx': tree_idx,
                             'tip_size': tip_size,
@@ -336,7 +354,10 @@ def process_trees_batch(
                         error_msg = str(e)
                         if len(error_msg) > 200:
                             error_msg = error_msg[:200]
-                        print(f"    ⚠ Tree {tree_idx} failed: {error_msg[:50]}")
+                        print(
+                            f"    [WARN] Tree {tree_idx} failed: "
+                            f"{error_msg[:50]}"
+                        )
                         results_for_size.append({
                             'tree_idx': tree_idx,
                             'tip_size': tip_size,
@@ -346,7 +367,8 @@ def process_trees_batch(
                         })
         else:
             # Sequential processing
-            for i, (tree_idx, tip_size, tree_file_str, true_lambda, true_mu) in enumerate(tree_tasks):
+            for i, (tree_idx, tip_size, tree_file_str, true_lambda,
+                true_mu) in enumerate(tree_tasks):
                 result = {
                     'tree_idx': tree_idx,
                     'tip_size': tip_size,
@@ -366,7 +388,8 @@ def process_trees_batch(
                         tree_file_str, sampling_prob, **estimator_kwargs
                     )
                     
-                    if estimate_result and estimate_result.get('success', True):
+                    if estimate_result and estimate_result.get('success',
+                        True):
                         result.update(estimate_result)
                         successful += 1
                     else:
@@ -387,8 +410,10 @@ def process_trees_batch(
         if results_for_size:
             df_size = pd.DataFrame(results_for_size)
             all_results.append(df_size)
-            
-            output_file = output_dir / f"{method_name.lower()}_results_n{tip_size}.csv"
+
+            output_file = (
+                output_dir / f"{method_name.lower()}_results_n{tip_size}.csv"
+            )
             df_size.to_csv(str(output_file), index=False)
             print(f"  Saved results to: {output_file}")
     
@@ -427,7 +452,10 @@ def process_trees_batch(
     print("\n" + "=" * 80)
     print(f"{method_name.upper()} ANALYSIS COMPLETE")
     print("=" * 80)
-    print(f"Total time: {hours:02d}:{minutes:02d}:{seconds:02d} ({elapsed_time:.2f} seconds)")
+    print(
+        f"Total time: {hours:02d}:{minutes:02d}:{seconds:02d} "
+        f"({elapsed_time:.2f} seconds)"
+    )
     print(f"Results saved in: {output_dir}/")
     print("=" * 80)
     

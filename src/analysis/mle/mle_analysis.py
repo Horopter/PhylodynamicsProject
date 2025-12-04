@@ -2,6 +2,8 @@
 MLE Analysis: Runs Maximum Likelihood Estimation on phylogenetic trees.
 
 Uses the unified batch processor with the MLE estimator class.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 # Setup environment first (adds paths)
@@ -48,7 +50,10 @@ if __name__ == "__main__":
         "--n-jobs",
         type=int,
         default=1,
-        help="Number of parallel jobs (1 = sequential, N > 1 = parallel with N workers)"
+        help=(
+            "Number of parallel jobs (1 = sequential, "
+            "N > 1 = parallel with N workers)"
+        )
     )
     args = parser.parse_args()
     

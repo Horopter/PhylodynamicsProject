@@ -2,6 +2,8 @@
 PhyloDeep Analysis: Runs PhyloDeep deep learning model on phylogenetic trees.
 
 Uses the unified batch processor with PhyloDeep library.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import numpy as np
@@ -62,9 +64,11 @@ def phylodeep_estimator(tree_file: str, sampling_prob: float):
             else:
                 result[f'phylodeep_{col}'] = float(value)
         
-        # Compute lambda and mu from R0 and infectious_period if not directly available
+        # Compute lambda and mu from R0 and infectious_period if not
+        # directly available
         # R0 = lambda / mu, and infectious_period = 1 / mu
-        # Therefore: mu = 1 / infectious_period, and lambda = R0 * mu = R0 / infectious_period
+        # Therefore: mu = 1 / infectious_period, and
+        # lambda = R0 * mu = R0 / infectious_period
         if 'R0' in result and 'infectious_period' in result:
             r0_val = result['R0']
             ip_val = result['infectious_period']
@@ -79,7 +83,8 @@ def phylodeep_estimator(tree_file: str, sampling_prob: float):
                 mu_val = result.get('mu')
                 if not pd.isna(r0_val) and not pd.isna(mu_val) and mu_val > 0:
                     result['lambda'] = float(r0_val * mu_val)
-                elif not pd.isna(r0_val) and not pd.isna(ip_val) and ip_val > 0:
+        elif (not pd.isna(r0_val) and not pd.isna(ip_val) and
+              ip_val > 0):
                     # Alternative: lambda = R0 / infectious_period
                     result['lambda'] = float(r0_val / ip_val)
         
@@ -94,7 +99,8 @@ def phylodeep_estimator(tree_file: str, sampling_prob: float):
             result['infectious_period'] = np.nan
         
         # Mark as successful if we have at least one valid value
-        if not all(pd.isna(v) for k, v in result.items() if k in ['lambda', 'mu', 'R0', 'infectious_period']):
+        if not all(pd.isna(v) for k, v in result.items() if k in ['lambda',
+            'mu', 'R0', 'infectious_period']):
             result['success'] = True
         
         return result
@@ -121,7 +127,10 @@ if __name__ == "__main__":
         "--n-jobs",
         type=int,
         default=1,
-        help="Number of parallel jobs (1 = sequential, N > 1 = parallel with N workers)"
+        help=(
+            "Number of parallel jobs (1 = sequential, "
+            "N > 1 = parallel with N workers)"
+        )
     )
     args = parser.parse_args()
     

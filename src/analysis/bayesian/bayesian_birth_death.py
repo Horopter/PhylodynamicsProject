@@ -7,6 +7,8 @@ quantification - not just point estimates but credible intervals.
 
 Uses PyMC for the MCMC sampling and the Stadler (2010) likelihood - same as MLE
 but with Bayesian inference instead of optimization.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import numpy as np
@@ -33,8 +35,10 @@ class BayesianBirthDeath:
     """
     Bayesian MCMC estimation for Birth-Death model parameters.
 
-    I built this to complement the MLE approach - gives us posterior distributions
-    instead of just point estimates. Uses PyMC for MCMC and Stadler (2010) likelihood.
+    I built this to complement the MLE approach - gives us posterior
+        distributions
+    instead of just point estimates. Uses PyMC for MCMC and Stadler (
+        2010) likelihood.
     Works with tree data only - no sequences needed.
     """
 
@@ -62,7 +66,9 @@ class BayesianBirthDeath:
         # Extract the same tree stats as MLE - need topology and branch lengths
         self.n_tips = len(self.tree.get_leaves())
         self.branching_times = self._extract_branching_times()
-        self.tree_height = max(self.branching_times) if self.branching_times else 0.0
+        self.tree_height = (
+            max(self.branching_times) if self.branching_times else 0.0
+        )
         self.branch_lengths = [
             node.dist
             for node in self.tree.traverse()
@@ -76,7 +82,9 @@ class BayesianBirthDeath:
         )
 
         if self.n_tips <= 1 or self.total_branch_length <= 0:
-            raise ValueError("Tree has insufficient information for parameter estimation")
+            raise ValueError(
+                "Tree has insufficient information for parameter estimation"
+            )
 
     def _extract_branching_times(self):
         """
@@ -101,8 +109,10 @@ class BayesianBirthDeath:
         """
         Stadler (2010) log-likelihood - same formula as MLE.
 
-        Important: This only needs tree topology and branch lengths. No nucleotide
-        sequences at all. The likelihood models the birth-death process that created
+        Important: This only needs tree topology and branch lengths. No
+            nucleotide
+        sequences at all. The likelihood models the birth-death process that
+            created
         the tree structure.
 
         Parameters:
@@ -144,7 +154,8 @@ class BayesianBirthDeath:
         Estimate BD parameters using MCMC sampling.
 
         This gives us posterior distributions instead of just point estimates.
-        Can adjust the number of samples and chains based on how much time we have.
+        Can adjust the number of samples and chains based on how much time we
+            have.
 
         Parameters:
         -----------
@@ -168,12 +179,16 @@ class BayesianBirthDeath:
         if not HAS_PYMC:
             return {
                 "success": False,
-                "message": "PyMC is not installed. Install with: pip install pymc arviz",
+                "message": (
+                    "PyMC is not installed. Install with: "
+                    "pip install pymc arviz"
+                ),
             }
 
         try:
             with pm.Model() as model:
-                # Set up priors - uniform seems reasonable for birth-death rates
+                # Set up priors - uniform seems reasonable for
+                # birth-death rates
                 if lambda_prior == 'uniform':
                     lambda_param = pm.Uniform('lambda', lower=0.01, upper=10.0)
                 elif lambda_prior == 'exponential':
@@ -183,14 +198,16 @@ class BayesianBirthDeath:
 
                 if mu_prior == 'uniform':
                     # Need mu < lambda for positive net diversification
-                    # Use a simpler approach: set upper bound to a fixed value
-                    # and enforce constraint via Potential using simple arithmetic
+                    # Use a simpler approach: set upper bound to a fixed
+                    # value and enforce constraint via Potential using
+                    # simple arithmetic
                     mu_param = pm.Uniform('mu', lower=0.01, upper=9.99)
                     # Constraint: mu must be less than lambda
-                    # Use simple arithmetic penalty instead of switch to avoid compatibility issues
+                    # Use simple arithmetic penalty instead of switch to
+                    # avoid compatibility issues
                     diff = lambda_param - mu_param
-                    # Large penalty if diff is negative or very small (mu >= lambda)
-                    # Use pm.math.maximum to avoid switch
+                    # Large penalty if diff is negative or very small
+                    # (mu >= lambda). Use pm.math.maximum to avoid switch
                     penalty = -1e10 * pm.math.maximum(0.0, 1e-6 - diff)
                     pm.Potential('mu_lt_lambda', penalty)
                 elif mu_prior == 'exponential':
@@ -252,13 +269,25 @@ class BayesianBirthDeath:
             try:
                 # Get ESS (Effective Sample Size) for key parameters
                 ess_data = az.ess(trace)
-                lambda_ess = float(ess_data['lambda'].values) if 'lambda' in ess_data else None
-                mu_ess = float(ess_data['mu'].values) if 'mu' in ess_data else None
-                
+                lambda_ess = (
+                    float(ess_data['lambda'].values)
+                    if 'lambda' in ess_data else None
+                )
+                mu_ess = (
+                    float(ess_data['mu'].values)
+                    if 'mu' in ess_data else None
+                )
+
                 # Get R-hat (convergence diagnostic)
                 rhat_data = az.rhat(trace)
-                lambda_rhat = float(rhat_data['lambda'].values) if 'lambda' in rhat_data else None
-                mu_rhat = float(rhat_data['mu'].values) if 'mu' in rhat_data else None
+                lambda_rhat = (
+                    float(rhat_data['lambda'].values)
+                    if 'lambda' in rhat_data else None
+                )
+                mu_rhat = (
+                    float(rhat_data['mu'].values)
+                    if 'mu' in rhat_data else None
+                )
                 
                 # Count divergences from sample_stats
                 n_divergences = None
@@ -330,11 +359,14 @@ class BayesianBirthDeath:
         except Exception as e:
             return {
                 "success": False,
-                "message": f"Error during MCMC sampling: {str(e)}",
+                "message": (
+                    f"Error during MCMC sampling: {str(e)}"
+                ),
             }
 
 
-# Note: EvoVGM would need sequence alignments, not just trees. Since we're working
-# with tree-only data, I'm using BayesianBirthDeath which works with the Stadler
-# likelihood on tree topology and branch lengths.
+# Note: EvoVGM would need sequence alignments, not just trees.
+# Since we're working with tree-only data, I'm using BayesianBirthDeath
+# which works with the Stadler likelihood on tree topology and branch
+# lengths.
 

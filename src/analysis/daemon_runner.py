@@ -20,6 +20,8 @@ Usage:
     
     # View logs
     tail -f output/daemon/daemon.log
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import os
@@ -105,6 +107,13 @@ def stop_daemon():
     
     if pid is None:
         logger.info("No daemon process found")
+        # Clean up PID file if it exists (stale file)
+        if DAEMON_PID_FILE.exists():
+            try:
+                DAEMON_PID_FILE.unlink()
+                logger.info("Removed stale PID file")
+            except Exception as e:
+                logger.warning(f"Could not remove stale PID file: {e}")
         return False
     
     try:
@@ -118,17 +127,36 @@ def stop_daemon():
         except psutil.TimeoutExpired:
             logger.warning("Daemon didn't terminate gracefully, forcing...")
             proc.kill()
+            proc.wait(timeout=5)  # Wait a bit more after kill
         
-        DAEMON_PID_FILE.unlink()
+        # Always delete PID file after stopping process
+        if DAEMON_PID_FILE.exists():
+            DAEMON_PID_FILE.unlink()
+            logger.info("Removed PID file")
+        
         logger.info("Daemon stopped successfully")
         return True
     except psutil.NoSuchProcess:
         logger.info("Daemon process not found (may have already stopped)")
+        # Always delete PID file if process doesn't exist
         if DAEMON_PID_FILE.exists():
-            DAEMON_PID_FILE.unlink()
+            try:
+                DAEMON_PID_FILE.unlink()
+                logger.info("Removed stale PID file")
+            except Exception as e:
+                logger.warning(f"Could not remove stale PID file: {e}")
         return False
     except Exception as e:
         logger.error(f"Error stopping daemon: {e}")
+        # Even on error, try to clean up PID file
+        if DAEMON_PID_FILE.exists():
+            try:
+                DAEMON_PID_FILE.unlink()
+                logger.info("Removed PID file after error")
+            except Exception as cleanup_error:
+                logger.warning(
+                    f"Could not remove PID file after error: {cleanup_error}"
+                )
         return False
 
 
@@ -145,7 +173,10 @@ def daemon_status():
         proc = psutil.Process(pid)
         logger.info(f"Daemon is running (PID: {pid})")
         logger.info(f"Started: {datetime.fromtimestamp(proc.create_time())}")
-        logger.info(f"CPU: {proc.cpu_percent():.1f}%, Memory: {proc.memory_info().rss / 1024 / 1024:.1f} MB")
+        logger.info(
+            f"CPU: {proc.cpu_percent():.1f}%, "
+            f"Memory: {proc.memory_info().rss / 1024 / 1024:.1f} MB"
+        )
         return True
     except psutil.NoSuchProcess:
         logger.info("Daemon is not running (stale PID file)")
@@ -181,12 +212,15 @@ def run_analysis_script(script_path: Path, method_name: str, logger):
     script_path_rel = script_path_abs.relative_to(analysis_dir_abs)
     
     # Set up environment with PYTHONPATH
-    # Need: project_root (for config), analysis_dir (for utils), and src_dir (for mle/bayesian/phylodeep packages)
+    # Need: project_root (for config), analysis_dir (for utils), and
+    # src_dir (for mle/bayesian/phylodeep packages)
     src_dir = analysis_dir.parent
     env = os.environ.copy()
     pythonpath = env.get('PYTHONPATH', '')
     if pythonpath:
-        env['PYTHONPATH'] = f"{project_root}:{analysis_dir}:{src_dir}:{pythonpath}"
+        env['PYTHONPATH'] = (
+            f"{project_root}:{analysis_dir}:{src_dir}:{pythonpath}"
+        )
     else:
         env['PYTHONPATH'] = f"{project_root}:{analysis_dir}:{src_dir}"
     
@@ -209,11 +243,14 @@ def run_analysis_script(script_path: Path, method_name: str, logger):
             import re
             version_match = re.search(r'(\d+)\.(\d+)', version_str)
             if version_match:
-                major, minor = int(version_match.group(1)), int(version_match.group(2))
+                major, minor = (
+                    int(version_match.group(1)),
+                    int(version_match.group(2))
+                )
                 if major == 3 and minor >= 12:
                     logger.warning(
-                        f"⚠ Venv Python {version_str} is incompatible (requires <3.12). "
-                        f"Using sys.executable instead."
+                        f"[WARN] Venv Python {version_str} is incompatible "
+                        f"(requires <3.12). Using sys.executable instead."
                     )
                 else:
                     python_exe = str(venv_python)
@@ -229,14 +266,18 @@ def run_analysis_script(script_path: Path, method_name: str, logger):
             # Write header to log file
             log_f.write("=" * 80 + "\n")
             log_f.write(f"{method_name} Analysis Log\n")
-            log_f.write(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            log_f.write(
+                f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             log_f.write("=" * 80 + "\n\n")
             log_f.flush()
             
             # Run the script, redirecting both stdout and stderr to log file
             result = subprocess.run(
                 [python_exe, str(script_path_rel)],
-                cwd=str(analysis_dir),  # Run from src/analysis/ for relative imports
+                cwd=
+                    str(analysis_dir),
+                        # Run from src/analysis/ for relative imports
                 env=env,  # Include PYTHONPATH for config imports
                 stdout=log_f,  # Redirect stdout to log file
                 stderr=subprocess.STDOUT,  # Redirect stderr to same file
@@ -248,14 +289,16 @@ def run_analysis_script(script_path: Path, method_name: str, logger):
         # Append completion info to log file
         with open(analysis_log_file, 'a') as log_f:
             log_f.write("\n" + "=" * 80 + "\n")
-            log_f.write(f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            log_f.write(
+                f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             log_f.write(f"Exit code: {result.returncode}\n")
             log_f.write(f"Elapsed time: {elapsed:.2f} seconds\n")
             log_f.write("=" * 80 + "\n")
         
         if result.returncode == 0:
             logger.info(
-                f"✓ {method_name} analysis completed successfully "
+                f"[OK] {method_name} analysis completed successfully "
                 f"({elapsed:.1f}s, log: {analysis_log_file.name})"
             )
             return True, None, elapsed
@@ -269,20 +312,29 @@ def run_analysis_script(script_path: Path, method_name: str, logger):
                         error_msg = error_msg[:500]
             except Exception:
                 error_msg = f"Exit code {result.returncode}"
-            logger.error(f"✗ {method_name} analysis failed (log: {analysis_log_file.name})")
+            logger.error(
+                f"[FAIL] {method_name} analysis failed "
+                f"(log: {analysis_log_file.name})"
+            )
             return False, error_msg, elapsed
             
     except subprocess.TimeoutExpired:
         elapsed = time.time() - start_time
         with open(analysis_log_file, 'a') as log_f:
             log_f.write(f"\nERROR: Timeout after {elapsed:.2f} seconds\n")
-        logger.error(f"✗ {method_name} timed out (log: {analysis_log_file.name})")
+        logger.error(
+            f"[FAIL] {method_name} timed out "
+            f"(log: {analysis_log_file.name})"
+        )
         return False, "Timeout", elapsed
     except Exception as e:
         elapsed = time.time() - start_time
         with open(analysis_log_file, 'a') as log_f:
             log_f.write(f"\nERROR: {str(e)}\n")
-        logger.error(f"✗ {method_name} analysis error: {str(e)} (log: {analysis_log_file.name})")
+        logger.error(
+            f"[FAIL] {method_name} analysis error: {str(e)} "
+            f"(log: {analysis_log_file.name})"
+        )
         return False, str(e), elapsed
 
 
@@ -304,12 +356,15 @@ def run_comparison(logger):
     compare_script_rel = compare_script_abs.relative_to(analysis_dir_abs)
     
     # Set up environment with PYTHONPATH
-    # Need: project_root (for config), analysis_dir (for utils), and src (for mle/bayesian/phylodeep packages)
+    # Need: project_root (for config), analysis_dir (for utils), and
+    # src (for mle/bayesian/phylodeep packages)
     src_dir = analysis_dir.parent
     env = os.environ.copy()
     pythonpath = env.get('PYTHONPATH', '')
     if pythonpath:
-        env['PYTHONPATH'] = f"{project_root}:{analysis_dir}:{src_dir}:{pythonpath}"
+        env['PYTHONPATH'] = (
+            f"{project_root}:{analysis_dir}:{src_dir}:{pythonpath}"
+        )
     else:
         env['PYTHONPATH'] = f"{project_root}:{analysis_dir}:{src_dir}"
     
@@ -330,11 +385,14 @@ def run_comparison(logger):
             import re
             version_match = re.search(r'(\d+)\.(\d+)', version_str)
             if version_match:
-                major, minor = int(version_match.group(1)), int(version_match.group(2))
+                major, minor = (
+                    int(version_match.group(1)),
+                    int(version_match.group(2))
+                )
                 if major == 3 and minor >= 12:
                     logger.warning(
-                        f"⚠ Venv Python {version_str} is incompatible (requires <3.12). "
-                        f"Using sys.executable instead."
+                        f"[WARN] Venv Python {version_str} is incompatible "
+                        f"(requires <3.12). Using sys.executable instead."
                     )
                 else:
                     python_exe = str(venv_python)
@@ -353,14 +411,18 @@ def run_comparison(logger):
             # Write header to log file
             log_f.write("=" * 80 + "\n")
             log_f.write("Comparison Analysis Log\n")
-            log_f.write(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            log_f.write(
+                f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             log_f.write("=" * 80 + "\n\n")
             log_f.flush()
             
             # Run the script, redirecting both stdout and stderr to log file
             result = subprocess.run(
                 [python_exe, str(compare_script_rel)],
-                cwd=str(analysis_dir),  # Run from src/analysis/ for relative imports
+                cwd=
+                    str(analysis_dir),
+                        # Run from src/analysis/ for relative imports
                 env=env,  # Include PYTHONPATH for config imports
                 stdout=log_f,  # Redirect stdout to log file
                 stderr=subprocess.STDOUT,  # Redirect stderr to same file
@@ -372,16 +434,24 @@ def run_comparison(logger):
         # Append completion info to log file
         with open(COMPARISON_LOG_FILE, 'a') as log_f:
             log_f.write("\n" + "=" * 80 + "\n")
-            log_f.write(f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            log_f.write(
+                f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            )
             log_f.write(f"Exit code: {result.returncode}\n")
             log_f.write(f"Elapsed time: {elapsed:.2f} seconds\n")
             log_f.write("=" * 80 + "\n")
         
         if result.returncode == 0:
-            logger.info(f"✓ Comparison completed successfully ({elapsed:.1f}s, log: {COMPARISON_LOG_FILE.name})")
+            logger.info(
+                f"[OK] Comparison completed successfully "
+                f"({elapsed:.1f}s, log: {COMPARISON_LOG_FILE.name})"
+            )
             return True
         else:
-            logger.error(f"✗ Comparison failed (log: {COMPARISON_LOG_FILE.name})")
+            logger.error(
+                f"[FAIL] Comparison failed "
+                f"(log: {COMPARISON_LOG_FILE.name})"
+            )
             return False
     except subprocess.CalledProcessError as e:
         elapsed = time.time() - start_time
@@ -389,13 +459,19 @@ def run_comparison(logger):
             log_f.write(f"\nERROR: Exit code {e.returncode}\n")
             if e.stderr:
                 log_f.write(f"Error: {e.stderr[:500]}\n")
-        logger.error(f"✗ Comparison failed: Exit code {e.returncode} (log: {COMPARISON_LOG_FILE.name})")
+        logger.error(
+            f"[FAIL] Comparison failed: Exit code {e.returncode} "
+            f"(log: {COMPARISON_LOG_FILE.name})"
+        )
         return False
     except Exception as e:
         elapsed = time.time() - start_time
         with open(COMPARISON_LOG_FILE, 'a') as log_f:
             log_f.write(f"\nERROR: {str(e)}\n")
-        logger.error(f"✗ Comparison error: {str(e)} (log: {COMPARISON_LOG_FILE.name})")
+        logger.error(
+            f"[FAIL] Comparison error: {str(e)} "
+            f"(log: {COMPARISON_LOG_FILE.name})"
+        )
         return False
 
 
@@ -434,11 +510,17 @@ def cleanup_output_and_logs(project_root, logger):
             dir_count = sum(1 for _ in output_dir.rglob('*') if _.is_dir())
             
             try:
-                # Use shutil.rmtree for complete removal (handles all files and subdirs)
+                # Use shutil.rmtree for complete removal
+                # (handles all files and subdirs)
                 shutil.rmtree(output_dir)
-                logger.info(f"✓ Deleted: {output_dir} ({file_count} files, {dir_count} dirs)")
+                logger.info(
+                    f"[OK] Deleted: {output_dir} "
+                    f"({file_count} files, {dir_count} dirs)"
+                )
             except PermissionError as e:
-                logger.warning(f"⚠ Permission error deleting {output_dir}: {e}")
+                logger.warning(
+                    f"[WARN] Permission error deleting {output_dir}: {e}"
+                )
                 # Try to delete files individually
                 try:
                     for item in output_dir.rglob('*'):
@@ -451,17 +533,22 @@ def cleanup_output_and_logs(project_root, logger):
                             pass
                     # Try to remove the directory
                     output_dir.rmdir()
-                    logger.info(f"✓ Deleted (with retries): {output_dir}")
+                    logger.info(f"[OK] Deleted (with retries): {output_dir}")
                 except Exception as e2:
-                    logger.error(f"✗ Could not delete {output_dir} even with retries: {e2}")
+                    logger.error(
+                        f"[FAIL] Could not delete {output_dir} even "
+                        f"with retries: {e2}"
+                    )
             except Exception as e:
-                logger.warning(f"⚠ Could not delete {output_dir}: {e}")
+                logger.warning(f"[WARN] Could not delete {output_dir}: {e}")
                 # Force delete with ignore_errors
                 try:
                     shutil.rmtree(output_dir, ignore_errors=True)
-                    logger.info(f"✓ Force deleted: {output_dir}")
+                    logger.info(f"[OK] Force deleted: {output_dir}")
                 except Exception as e2:
-                    logger.error(f"✗ Could not force delete {output_dir}: {e2}")
+                    logger.error(
+                        f"[FAIL] Could not force delete {output_dir}: {e2}"
+                    )
         
         # Recreate directory (fresh and empty)
         try:
@@ -469,7 +556,10 @@ def cleanup_output_and_logs(project_root, logger):
             # Verify it's empty
             remaining = list(output_dir.iterdir())
             if remaining:
-                logger.warning(f"⚠ {output_dir} is not empty after creation! ({len(remaining)} items)")
+                logger.warning(
+                    f"[WARN] {output_dir} is not empty after creation! "
+                    f"({len(remaining)} items)"
+                )
                 # Try to remove remaining items
                 for item in remaining:
                     try:
@@ -480,9 +570,9 @@ def cleanup_output_and_logs(project_root, logger):
                     except Exception:
                         pass
             else:
-                logger.info(f"✓ Created (empty): {output_dir}")
+                logger.info(f"[OK] Created (empty): {output_dir}")
         except Exception as e:
-            logger.error(f"✗ Could not create {output_dir}: {e}")
+            logger.error(f"[FAIL] Could not create {output_dir}: {e}")
     
     # Clean up ALL log files in daemon directory (remove unnecessary ones too)
     logger.info("\nCleaning up log files...")
@@ -493,9 +583,9 @@ def cleanup_output_and_logs(project_root, logger):
         for log_file in log_files_found:
             try:
                 log_file.unlink()
-                logger.info(f"✓ Removed: {log_file.name}")
+                logger.info(f"[OK] Removed: {log_file.name}")
             except Exception as e:
-                logger.warning(f"⚠ Could not remove {log_file.name}: {e}")
+                logger.warning(f"[WARN] Could not remove {log_file.name}: {e}")
     
     # Define expected log files
     expected_log_files = [
@@ -513,9 +603,9 @@ def cleanup_output_and_logs(project_root, logger):
         try:
             log_file.parent.mkdir(parents=True, exist_ok=True)
             log_file.touch()
-            logger.info(f"✓ Created: {log_file.name}")
+            logger.info(f"[OK] Created: {log_file.name}")
         except Exception as e:
-            logger.warning(f"⚠ Could not create {log_file.name}: {e}")
+            logger.warning(f"[WARN] Could not create {log_file.name}: {e}")
     
     logger.info("=" * 80)
     logger.info("CLEANUP COMPLETE")
@@ -565,7 +655,8 @@ def daemon_main():
         # Define all analysis scripts
         scripts = {
             "MLE": script_dir / "mle" / "mle_analysis.py",
-            "PhyloDeep": script_dir / "phylodeep_method" / "phylodeep_analysis.py",
+            "PhyloDeep": script_dir / "phylodeep_method" /
+                "phylodeep_analysis.py",
             "Bayesian": script_dir / "bayesian" / "bayesian_analysis.py",
         }
         
@@ -591,14 +682,14 @@ def daemon_main():
                 results[method_name] = (success, error, elapsed)
                 
                 if success:
-                    logger.info(f"✓ {method_name} completed")
+                    logger.info(f"[OK] {method_name} completed")
                 else:
                     if method_name == "Bayesian":
                         logger.warning(
-                            f"⚠ {method_name} failed (optional): {error}"
+                            f"[WARN] {method_name} failed (optional): {error}"
                         )
                     else:
-                        logger.error(f"✗ {method_name} failed: {error}")
+                        logger.error(f"[FAIL] {method_name} failed: {error}")
         
         analysis_elapsed = time.time() - analysis_start
         
@@ -611,7 +702,7 @@ def daemon_main():
         logger.info(f"Total analysis time: {analysis_elapsed:.1f}s")
         
         for method_name, (success, error, elapsed) in results.items():
-            status = "✓" if success else "✗"
+            status = "[OK]" if success else "[FAIL]"
             logger.info(f"  {status} {method_name}: {elapsed:.1f}s")
         
         # Run comparison if at least one analysis succeeded
@@ -632,7 +723,9 @@ def daemon_main():
                 logger.warning("=" * 80)
         else:
             logger.error("\n" + "=" * 80)
-            logger.error("No analyses completed successfully - skipping comparison")
+            logger.error(
+                "No analyses completed successfully - skipping comparison"
+            )
             logger.error("=" * 80)
         
     except KeyboardInterrupt:

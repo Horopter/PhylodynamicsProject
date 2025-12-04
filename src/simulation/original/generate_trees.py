@@ -1,3 +1,12 @@
+"""
+Original tree generation script from PhylodynamicsDL repository.
+
+This file is preserved for historical reference and documentation purposes.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
+(Original code from: https://github.com/mcanearm/PhylodynamicsDL)
+"""
+
 import numpy as np
 import subprocess
 from pathlib import Path
@@ -18,7 +27,8 @@ generate_bd = venv_bin / "generate_bd"
 max_workers = 8
 
 
-def generate_tree(i, la, psi, out_dir=Path("./output_trees"), timeout_seconds=5):
+def generate_tree(i, la, psi, out_dir=Path("./output_trees"),
+    timeout_seconds=5):
     out_dir.mkdir(exist_ok=True, parents=True)
     tree_path = out_dir / f"tree_{i}.nwk"
     log_path = out_dir / f"params_{i}.csv"
@@ -66,7 +76,8 @@ with ThreadPoolExecutor(max_workers=max_workers) as ex:
             continue
         else:
             la, psi = row
-            futures.append(ex.submit(generate_tree, i, la, psi, out_dir=output_dir))
+            futures.append(ex.submit(generate_tree, i, la, psi,
+                out_dir=output_dir))
     for fut in tqdm(
         as_completed(futures),
         total=len(futures),

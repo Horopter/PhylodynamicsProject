@@ -5,7 +5,10 @@ Generates trees using the generate_bd binary (must be in PATH or specified).
 Uses device-independent paths from config.py.
 
 This is the refactored version of the original implementation.
-See original/ directory for the historical code from PhylodynamicsDL repository.
+See original/ directory for the historical code from PhylodynamicsDL
+    repository.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import numpy as np
@@ -98,7 +101,7 @@ if __name__ == "__main__":
     print(f"Generating {n_trees} trees...")
     print(f"Output directory: {TREES_DIR}")
     print(f"Using generate_bd: {generate_bd}")
-
+    
     output_paths = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
         futures = []
@@ -107,7 +110,8 @@ if __name__ == "__main__":
                 continue
             else:
                 la, psi = row
-                futures.append(ex.submit(generate_tree, i, la, psi, out_dir=TREES_DIR))
+                futures.append(ex.submit(generate_tree, i, la, psi,
+                    out_dir=TREES_DIR))
     for fut in tqdm(
         as_completed(futures),
         total=len(futures),

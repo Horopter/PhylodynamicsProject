@@ -3,6 +3,8 @@ Project configuration file.
 
 Defines device-independent paths and project settings.
 All scripts should import from this module to ensure consistent paths.
+
+Author: Santosh Desai <santoshdesai12@hotmail.com>
 """
 
 import os
@@ -58,7 +60,8 @@ def setup_project_paths(script_file: str = None):
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
     
-    # If script_file is provided and it's in the analysis directory, add analysis parent
+    # If script_file is provided and it's in the analysis directory,
+    # add analysis parent
     if script_file:
         script_path = Path(script_file)
         if 'analysis' in script_path.parts:
@@ -176,6 +179,6 @@ if __name__ == "__main__":
     print("=" * 80)
     verification = verify_paths()
     for key, value in verification.items():
-        status = "✓" if value else "✗"
+        status = "[OK]" if value else "[FAIL]"
         print(f"  {status} {key}: {value}")
 
