@@ -91,7 +91,6 @@ PhyloDeepPOMP/
 │           ├── generate_trees.py
 │           ├── generate_trees.R
 │           └── README.md
-├── MODEL_EXPLANATION.md        # Detailed model documentation
 └── README.md                   # This file
 ```
 
@@ -288,7 +287,6 @@ The original tree generation code from the [PhylodynamicsDL repository](https://
 
 ## Documentation
 
-- **`MODEL_EXPLANATION.md`**: Detailed explanation of PhyloDeep and Bayesian models
 - **Code comments**: Inline documentation in all Python files
 
 ## Citation
