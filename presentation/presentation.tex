@@ -80,7 +80,7 @@
 \begin{frame}{Maximum Likelihood Estimation: Overview}
     \begin{itemize}
         \item \textbf{Goal}: Estimate birth rate ($\lambda$) and death rate ($\mu$) from phylogenetic trees
-        \item \textbf{Method}: Numerical optimization of Stadler (2010) likelihood
+        \item \textbf{Method}: Numerical optimization of Stadler (2010)~\cite{stadler_sampling-through-time_2010} likelihood
         \item \textbf{Key Feature}: Works with \textbf{tree data only} - no nucleotide sequences required
         \item \textbf{Implementation}: Uses \texttt{scipy.optimize.minimize} with L-BFGS-B algorithm
     \end{itemize}
@@ -159,7 +159,7 @@
 \end{frame}
 
 \begin{frame}{MLE Implementation: Key Features}
-    \small
+    \footnotesize
     \textbf{1. Survival Probability Term}
     \begin{itemize}
         \item Includes $-r \cdot T$ term to help identify $\mu$
@@ -167,7 +167,7 @@
         \item Critical for separating $\mu$ from $\lambda$ in the likelihood
     \end{itemize}
     
-    \vspace{0.2cm}
+    \vspace{0.15cm}
     \textbf{2. Regularization for Large Trees}
     \begin{itemize}
         \item Penalty: $-0.1 \log(\mu)$ when $\mu < 0.1$ and $n > 10$
@@ -175,7 +175,7 @@
         \item Encourages realistic death rate estimates based on tree size
     \end{itemize}
     
-    \vspace{0.2cm}
+    \vspace{0.15cm}
     \textbf{3. Robust Error Handling}
     \begin{itemize}
         \item Checks for invalid trees ($n \leq 1$, $T_{\text{total}} \leq 0$)
@@ -183,7 +183,7 @@
         \item Returns success status, log-likelihood, and iteration count
     \end{itemize}
     
-    \vspace{0.2cm}
+    \vspace{0.15cm}
     \textbf{4. Method-of-Moments Initialization}
     \begin{itemize}
         \item Smart starting values: $\hat{r} = \log(n)/T$, $\hat{\lambda} = (n-1)/T_{\text{total}}$
@@ -200,7 +200,7 @@
         \item \textcolor{deepgreen}{$\checkmark$} Works on small trees ($n < 50$)
         \item \textcolor{deepgreen}{$\checkmark$} Provides optimization diagnostics
         \item \textcolor{deepgreen}{$\checkmark$} Fast computation (seconds per tree)
-        \item \textcolor{deepgreen}{$\checkmark$} Based on well-established Stadler (2010) theory
+        \item \textcolor{deepgreen}{$\checkmark$} Based on well-established Stadler (2010)~\cite{stadler_sampling-through-time_2010} theory
     \end{itemize}
     
     \vspace{0.2cm}
@@ -216,172 +216,50 @@
     \textbf{Best use case}: Small to medium trees where statistical rigor is important
 \end{frame}
 
-\subsection{Improved MLE}
-\begin{frame}{Improved MLE: Overview}
-    \begin{itemize}
-        \item \textbf{Enhanced Version}: Multiple optimization strategies to improve RMSE
-        \item \textbf{Key Innovation}: Addresses initialization sensitivity and local minima
-        \item \textbf{Method}: Same Stadler (2010) likelihood with enhanced optimization
-        \item \textbf{Key Feature}: Works on all tree sizes (no minimum requirement)
-    \end{itemize}
-    
-    \vspace{0.3cm}
-    \textbf{Key Improvements}:
-    \begin{itemize}
-        \item \textcolor{deepgreen}{$\checkmark$} Multiple random starts (10 by default)
-        \item \textcolor{deepgreen}{$\checkmark$} Multi-algorithm optimization (L-BFGS-B, TNC, SLSQP)
-        \item \textcolor{deepgreen}{$\checkmark$} Enhanced likelihood using branching times
-        \item \textcolor{deepgreen}{$\checkmark$} Better initialization strategies
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Improved MLE: Key Features}
-    \textbf{1. Multiple Random Starts}
-    \begin{itemize}
-        \item Runs optimization from 10 different starting points
-        \item Selects best result (highest log-likelihood)
-        \item Reduces sensitivity to initialization
-        \item Expected: 10-15\% RMSE reduction
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{2. Multi-Algorithm Optimization}
-    \begin{itemize}
-        \item Tries multiple optimizers: L-BFGS-B, TNC, SLSQP
-        \item Falls back to Powell if needed
-        \item Selects best result across all algorithms
-        \item Expected: 5-10\% RMSE reduction
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Improved MLE: Key Features (cont.)}
-    \textbf{3. Enhanced Likelihood with Branching Times}
-    \begin{itemize}
-        \item Uses all internal node ages in likelihood calculation
-        \item Weighted contribution from each branching time
-        \item Better use of tree structure information
-        \item Expected: 10-15\% RMSE reduction
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{4. Better Initialization Strategies}
-    \begin{itemize}
-        \item Method-of-moments (first attempt)
-        \item Random uniform within bounds
-        \item Random near method-of-moments
-        \item Quantile-based (for large trees)
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{Total Expected Impact}: 20-30\% RMSE reduction vs vanilla MLE
-\end{frame}
-
-\begin{frame}{Improved MLE: Advantages and Limitations}
-    \textbf{Advantages}:
-    \begin{itemize}
-        \item \textcolor{deepgreen}{$\checkmark$} Lower RMSE than vanilla MLE
-        \item \textcolor{deepgreen}{$\checkmark$} Works on all tree sizes
-        \item \textcolor{deepgreen}{$\checkmark$} More robust to initialization
-        \item \textcolor{deepgreen}{$\checkmark$} Better handles local minima
-    \end{itemize}
-    
-    \vspace{0.3cm}
-    \textbf{Limitations}:
-    \begin{itemize}
-        \item \textcolor{deepred}{$\times$} Slower than vanilla MLE (10x restarts)
-        \item \textcolor{deepred}{$\times$} Point estimates only
-        \item \textcolor{deepred}{$\times$} Still higher RMSE than PhyloDeep on large trees
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{Best use case}: When improved accuracy is needed but PhyloDeep unavailable
-\end{frame}
-
 \subsection{Phylodeep}
-\begin{frame}{PhyloDeep: Overview}
+\begin{frame}{PhyloDeep: How We Used the Package}
+    \textbf{Pre-trained Models Used}:
     \begin{itemize}
-        \item \textbf{Deep Learning Approach}: Pre-trained neural networks for parameter estimation
-        \item \textbf{Training Data}: Models trained on 3.9 million simulated birth-death trees
-        \item \textbf{Key Innovation}: Uses CBLV (Compact Binary Ladderized Vector) tree representation
-        \item \textbf{Model Selection}: Automatically selects best pre-trained model for given tree
-        \item \textbf{Output}: Parameter estimates with uncertainty (via parametric bootstrap)
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{Advantages}:
-    \begin{itemize}
-        \item \textcolor{deepgreen}{$\checkmark$} Very fast inference (milliseconds per tree)
-        \item \textcolor{deepgreen}{$\checkmark$} Lower RMSE on large trees ($n \geq 50$)
-        \item \textcolor{deepgreen}{$\checkmark$} Handles complex tree structures well
-        \item \textcolor{deepgreen}{$\checkmark$} Provides uncertainty estimates
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{PhyloDeep: Tree Representation}
-    \textbf{CBLV (Compact Binary Ladderized Vector)}:
-    \begin{itemize}
-        \item Converts tree topology and branch lengths into fixed-size vector
-        \item Preserves essential phylogenetic information
-        \item Enables CNN (Convolutional Neural Network) processing
-        \item Alternative: Summary statistics representation (SUMSTATS)
+        \item \textbf{Model Type}: BD (Birth-Death) pre-trained models from PhyloDeep package
+        \item \textbf{We ONLY estimated BD trees} - used PhyloDeep's BD models exclusively
     \end{itemize}
     
     \vspace{0.3cm}
-    \textbf{Model Architecture}:
+    \textbf{Model Selection by Tree Size}:
     \begin{itemize}
-        \item \textbf{FULL}: CNN for complete tree representation (used in our analysis)
-        \item \textbf{SUMSTATS}: Feed-forward network for summary statistics
-        \item Pre-trained models for different tree sizes and parameter ranges
+        \item \textbf{Medium trees} ($50 \leq n < 200$): PhyloDeep automatically uses BD models trained on medium-sized trees
+        \item \textbf{Large trees} ($n \geq 200$): PhyloDeep automatically uses BD models trained on large trees
+        \item \textbf{Automatic selection}: PhyloDeep's \texttt{paramdeep} function selects the appropriate model based on tree size
     \end{itemize}
     
     \vspace{0.3cm}
     \textbf{Implementation}:
     \begin{itemize}
-        \item Input: Newick format tree file
-        \item Model: BD (Birth-Death) model type
-        \item Output: $\lambda$, $\mu$, $R_0$, infectious period
+        \item Called \texttt{paramdeep(tree\_file, sampling\_prob=0.5, model='BD', vector\_representation='FULL')}
+        \item Used FULL (CNN-based CBLV) representation, not SUMSTATS
+        \item Set \texttt{ci\_computation=False} for point estimates only
     \end{itemize}
 \end{frame}
 
 \begin{frame}{PhyloDeep: Key Features}
-    \textbf{1. Automatic Model Selection}
+    \textbf{1. Pre-trained BD Models}
     \begin{itemize}
-        \item PhyloDeep evaluates multiple pre-trained models
-        \item Selects model with highest probability for given tree
-        \item Adapts to tree size and structure automatically
+        \item Used existing BD models trained on 3.9 million trees (Voznica et al.)
+        \item Fast inference (milliseconds per tree)
+        \item Automatic model selection by tree size
     \end{itemize}
     
     \vspace{0.2cm}
-    \textbf{2. Uncertainty Quantification}
+    \textbf{2. FULL Tree Representation}
     \begin{itemize}
-        \item Parametric bootstrap provides confidence intervals
-        \item Accounts for estimation uncertainty
-        \item Useful for downstream analysis requiring uncertainty
+        \item CNN-based CBLV representation
+        \item Converts tree to fixed-size vector for neural network processing
     \end{itemize}
     
     \vspace{0.2cm}
-    \textbf{3. Minimum Tree Size Requirement}
+    \textbf{3. Output}
     \begin{itemize}
-        \item Requires at least 50 tips for reliable estimates
-        \item Smaller trees may return NaN or unreliable estimates
-        \item This is a limitation compared to MLE
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{PhyloDeep: Key Features (cont.)}
-    \textbf{4. Speed}
-    \begin{itemize}
-        \item Inference is extremely fast (milliseconds)
-        \item Suitable for batch processing thousands of trees
-        \item Much faster than MLE or Bayesian methods
-    \end{itemize}
-    
-    \vspace{0.3cm}
-    \textbf{5. Training Advantage}
-    \begin{itemize}
-        \item Trained on 3.9 million trees
-        \item Learns complex patterns from massive dataset
-        \item Gives advantage on large trees ($n \geq 50$)
+        \item Point estimates: $\lambda$, $\mu$, $R_0$, infectious period
     \end{itemize}
 \end{frame}
 
@@ -389,9 +267,7 @@
     \textbf{Advantages}:
     \begin{itemize}
         \item \textcolor{deepgreen}{$\checkmark$} Lower RMSE than MLE on large trees ($n \geq 50$)
-        \item \textcolor{deepgreen}{$\checkmark$} Extremely fast inference
-        \item \textcolor{deepgreen}{$\checkmark$} Handles complex tree structures
-        \item \textcolor{deepgreen}{$\checkmark$} Provides uncertainty estimates
+        \item \textcolor{deepgreen}{$\checkmark$} Extremely fast inference (milliseconds)
         \item \textcolor{deepgreen}{$\checkmark$} Trained on massive dataset (3.9M trees)
     \end{itemize}
     
@@ -400,132 +276,35 @@
     \begin{itemize}
         \item \textcolor{deepred}{$\times$} Requires minimum 50 tips (cannot handle small trees)
         \item \textcolor{deepred}{$\times$} Black-box model (less interpretable)
-        \item \textcolor{deepred}{$\times$} Dependent on training data distribution
-        \item \textcolor{deepred}{$\times$} May struggle with out-of-distribution trees
+        \item \textcolor{deepred}{$\times$} Point estimates only in our implementation
     \end{itemize}
     
     \vspace{0.2cm}
     \textbf{Best use case}: Large trees ($n \geq 50$) where speed and accuracy are priorities
 \end{frame}
 
-\subsection{Bayesian MCMC}
-\begin{frame}{Bayesian MCMC: Overview}
-    \begin{itemize}
-        \item \textbf{Goal}: Estimate posterior distributions of $\lambda$ and $\mu$
-        \item \textbf{Method}: Markov Chain Monte Carlo (MCMC) sampling using PyMC
-        \item \textbf{Likelihood}: Same Stadler (2010) formula as MLE
-        \item \textbf{Key Feature}: Provides \textbf{full uncertainty quantification}
-        \item \textbf{Implementation}: NUTS (No-U-Turn Sampler) with 4 chains
-    \end{itemize}
-    
-    \vspace{0.3cm}
-    \textbf{Advantages}:
-    \begin{itemize}
-        \item \textcolor{deepgreen}{$\checkmark$} Full posterior distributions (not just point estimates)
-        \item \textcolor{deepgreen}{$\checkmark$} Credible intervals for all parameters
-        \item \textcolor{deepgreen}{$\checkmark$} Works on all tree sizes (no minimum requirement)
-        \item \textcolor{deepgreen}{$\checkmark$} MCMC diagnostics (R-hat, ESS, divergences)
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Bayesian MCMC: Model Specification}
-    \textbf{Priors}:
-    \begin{itemize}
-        \item $\lambda \sim \text{Uniform}(0.01, 10.0)$
-        \item $\mu \sim \text{Uniform}(0.01, 9.99)$
-        \item Constraint: $\mu < \lambda$ (enforced via penalty)
-    \end{itemize}
+\begin{frame}{Method Comparison: PhyloDeep vs MLE}
+    \footnotesize
+    \begin{tabular}{l|p{3.5cm}|p{3.5cm}}
+        \textbf{Feature} & \textbf{PhyloDeep} & \textbf{MLE} \\
+        \hline
+        \textbf{Approach} & Deep learning & Classical stats \\
+        \textbf{Training} & Pre-trained (3.9M) & None \\
+        \textbf{Optimization} & Neural network & Single L-BFGS-B \\
+        \textbf{Min Size} & 50 tips & None \\
+        \textbf{Speed} & Milliseconds & Seconds \\
+        \textbf{Accuracy} & Best (large trees) & Baseline \\
+        \textbf{Interpretable} & No & Yes \\
+    \end{tabular}
     
     \vspace{0.2cm}
-    \textbf{Likelihood}:
-    \begin{align*}
-        \ell(\lambda, \mu | T, \rho) &= (n-1) \log(\lambda) \\
-        &\quad - (\lambda + \mu) T_{\text{total}} \\
-        &\quad + n \log(\rho)
-    \end{align*}
-    
-    Same Stadler (2010) formula as MLE, implemented using PyTensor operations.
-\end{frame}
-
-\begin{frame}{Bayesian MCMC: MCMC Settings}
-    \textbf{MCMC Configuration}:
+    \textbf{When to Use}:
     \begin{itemize}
-        \item \textbf{Sampler}: NUTS (No-U-Turn Sampler)
-        \item \textbf{Chains}: 4 (for robust diagnostics)
-        \item \textbf{Draws}: 6000 samples per chain
-        \item \textbf{Tune}: 4000 warm-up iterations
-        \item \textbf{Target accept}: 0.9 (for convergence)
-    \end{itemize}
-    
-    \vspace{0.3cm}
-    \textbf{Design Goals}:
-    \begin{itemize}
-        \item Achieve R-hat $< 1.01$ (chain convergence)
-        \item Minimize divergences (sampling quality)
-        \item Ensure adequate ESS (effective sample size)
+        \item \textbf{Small ($n < 50$)}: MLE only (PhyloDeep unavailable)
+        \item \textbf{Medium ($50 \leq n < 200$)}: PhyloDeep (speed) or MLE (interpretability)
+        \item \textbf{Large ($n \geq 200$)}: PhyloDeep (accuracy)
     \end{itemize}
 \end{frame}
-
-\begin{frame}{Bayesian MCMC: Diagnostics and Output}
-    \textbf{MCMC Diagnostics}:
-    \begin{itemize}
-        \item \textbf{R-hat} $< 1.01$: Ensures chain convergence
-        \item \textbf{ESS} (Effective Sample Size): Measures sampling efficiency
-        \item \textbf{Divergences}: Should be zero or minimal
-        \item All diagnostics computed using ArviZ
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{Posterior Summaries}:
-    \begin{itemize}
-        \item \textbf{Mean}: Point estimate (analogous to MLE)
-        \item \textbf{Median}: Robust central tendency
-        \item \textbf{Standard deviation}: Uncertainty measure
-        \item \textbf{Credible intervals}: 95\% CI (2.5\% and 97.5\% quantiles)
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Bayesian MCMC: Derived Quantities}
-    \textbf{Posterior Distributions}:
-    \begin{itemize}
-        \item $R_0 = \lambda / \mu$ (full posterior distribution)
-        \item Infectious period $= 1 / \mu$ (full posterior distribution)
-        \item All with complete uncertainty quantification
-    \end{itemize}
-    
-    \vspace{0.3cm}
-    \textbf{Key Advantage}:
-    \begin{itemize}
-        \item Provides full probability distributions, not just point estimates
-        \item Enables rigorous uncertainty quantification
-        \item Works on all tree sizes (no minimum requirement)
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Bayesian MCMC: Advantages and Limitations}
-    \small
-    \textbf{Advantages}:
-    \begin{itemize}
-        \item \textcolor{deepgreen}{$\checkmark$} Full uncertainty quantification (posterior distributions)
-        \item \textcolor{deepgreen}{$\checkmark$} Credible intervals for all parameters
-        \item \textcolor{deepgreen}{$\checkmark$} Works on all tree sizes (no minimum requirement)
-        \item \textcolor{deepgreen}{$\checkmark$} MCMC diagnostics ensure convergence
-        \item \textcolor{deepgreen}{$\checkmark$} Statistically principled (Bayesian inference)
-    \end{itemize}
-    
-    \vspace{0.2cm}
-    \textbf{Limitations}:
-    \begin{itemize}
-        \item \textcolor{deepred}{$\times$} Much slower than MLE or PhyloDeep (minutes per tree)
-        \item \textcolor{deepred}{$\times$} Requires careful tuning (target\_accept, draws, tune)
-        \item \textcolor{deepred}{$\times$} May have divergences if model is misspecified
-        \item \textcolor{deepred}{$\times$} Computationally intensive for large-scale analysis
-    \end{itemize}
-    
-    \vspace{0.1cm}
-    \textbf{Best use case}: When uncertainty quantification is critical, or for small trees where PhyloDeep fails
-\end{frame}
-
 
 \section{Results}
 
@@ -552,31 +331,62 @@
     \end{figure}
 \end{frame}
 
+\subsection{Bayesian MCMC}
+\begin{frame}{Bayesian MCMC: Attempted Analysis}
+    \footnotesize
+    \textbf{What We Attempted}:
+    \begin{itemize}
+        \item Implemented Bayesian MCMC using PyMC for birth-death parameter estimation
+        \item Used same Stadler (2010)~\cite{stadler_sampling-through-time_2010} likelihood as MLE
+        \item Sequential processing to avoid PyTensor cache conflicts
+        \item Goal: Full posterior distributions with uncertainty quantification
+    \end{itemize}
+    
+    \vspace{0.2cm}
+    \textbf{Initial Results}:
+    \begin{itemize}
+        \item Successfully analyzed 3,550 trees (out of 8,655 total)
+        \item Tree size range: 10-181 tips
+        \item Success rate: 99.4\% (3,530/3,550 trees)
+    \end{itemize}
+    
+    \vspace{0.2cm}
+    \textbf{Why We Did Not Pursue Further}:
+    \begin{itemize}
+        \item \textcolor{deepred}{$\times$} RMSE was not better than MLE or PhyloDeep
+        \item \textcolor{deepred}{$\times$} Computationally intensive (minutes per tree)
+        \item \textcolor{deepred}{$\times$} Sequential processing too slow for full dataset
+        \item \textcolor{deepred}{$\times$} No clear advantage to justify computational cost
+    \end{itemize}
+    
+    \vspace{0.15cm}
+    \textbf{Conclusion}: Bayesian MCMC provides uncertainty quantification but does not improve RMSE, so we focused on MLE and PhyloDeep for the main analysis.
+\end{frame}
+
 \begin{frame}{Results: Summary}
     \textbf{Key Findings}:
     \begin{itemize}
-        \item RMSE decreases with increasing tree size for all methods
-        \item \textbf{MLE/Improved MLE}: Work on small trees ($n < 50$) where PhyloDeep fails
-        \item \textbf{Improved MLE}: Lower RMSE than vanilla MLE (20-30\% reduction)
-        \item \textbf{PhyloDeep}: Lower RMSE on large trees ($n \geq 50$)
-        \item \textbf{Bayesian}: Provides uncertainty quantification, works on all tree sizes
+        \item RMSE decreases with increasing tree size for both methods
+        \item \textbf{MLE}: Works on small trees ($n < 50$) where PhyloDeep fails
+        \item \textbf{PhyloDeep}: Lower RMSE on average at all tree sizes where both methods apply ($n \geq 50$)
+        \item \textbf{Bayesian MCMC}: Attempted but RMSE not better than MLE/PhyloDeep
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Results: Method Comparison}
     \textbf{By Tree Size}:
     \begin{itemize}
-        \item \textbf{Small trees ($n < 50$)}: MLE, Improved MLE, and Bayesian only
-        \item \textbf{Medium trees ($50 \leq n < 200$)}: All methods comparable
-        \item \textbf{Large trees ($n \geq 200$)}: PhyloDeep has RMSE advantage
+        \item \textbf{Small trees ($n < 50$)}: MLE only (PhyloDeep unavailable)
+        \item \textbf{Medium trees ($50 \leq n < 200$)}: PhyloDeep has lower RMSE on average
+        \item \textbf{Large trees ($n \geq 200$)}: PhyloDeep has lower RMSE on average
     \end{itemize}
     
     \vspace{0.3cm}
     \textbf{Statistical Efficiency}:
     \begin{itemize}
-        \item PhyloDeep's advantage: training on 3.9M trees
-        \item Improved MLE: bridges gap between vanilla MLE and PhyloDeep
-        \item Bayesian: provides full uncertainty quantification
+        \item PhyloDeep's advantage: training on 3.9M trees enables better accuracy on average at all tree sizes
+        \item MLE: statistically principled baseline, works on all tree sizes including small trees
+        \item Bayesian MCMC: Attempted but did not improve RMSE, so not pursued further
     \end{itemize}
 \end{frame}
 
