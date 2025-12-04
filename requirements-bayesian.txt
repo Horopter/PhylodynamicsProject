@@ -1,0 +1,13 @@
+# Optional Bayesian dependencies
+# Install with: pip install -r requirements.txt -r requirements-bayesian.txt
+# Note: NumPy must be <2.0.0 for PhyloDeep compatibility
+# PyMC versions must be compatible with NumPy <2.0
+
+# Bayesian MCMC inference
+# Using older PyMC version compatible with NumPy 1.x
+pymc>=5.0.0,<5.15.0
+pytensor>=2.18.0,<2.20.0
+arviz>=0.15.0,<0.20.0
+# Ensure NumPy compatibility (PhyloDeep requires NumPy <2.0)
+numpy>=1.24.0,<2.0.0
+
